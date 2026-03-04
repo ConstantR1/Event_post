@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рейзор · ледяная пустыня</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0c14;
+            color: #e5ecf5;
+            line-height: 1.6;
+            overflow-x: hidden;
+            
+            /* Принудительная посекционная прокрутка */
+            scroll-snap-type: y mandatory;
+            scroll-snap-stop: always;
+            height: 100vh;
+            overflow-y: scroll;
+            
+            /* CSS-переменные для цветов градиента и размеров инея с каждой стороны */
+            --grad1: rgba(20, 40, 90, 0.4);
+            --grad2: rgba(10, 15, 50, 0.6);
+            --grad3: rgba(5, 10, 35, 0.7);
+            
+            --frost-top: 2vh;
+            --frost-bottom: 2vh;
+            --frost-left: 2vw;
+            --frost-right: 2vw;
+            
+            --frost-opacity: 0.15;  /* базовая прозрачность узора */
+        }
+
+        /* Класс блокировки скролла */
+        body.scroll-locked {
+            overflow: hidden;
+        }
+
+        /* Основной фоновый градиент */
+        .bg-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, var(--grad1) 0%, transparent 45%),
+                radial-gradient(circle at 80% 70%, var(--grad2) 0%, transparent 55%),
+                radial-gradient(circle at 40% 80%, var(--grad3) 0%, transparent 65%),
+                #05070c;
+            pointer-events: none;
+            z-index: -1;
+            transition: background 0.8s ease;
+        }
+
+        /* Контейнер для инея с четырёх сторон */
+        .frost-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .frost {
+            position: absolute;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    rgba(255, 255, 255, var(--frost-opacity)) 0px,
+                    rgba(255, 255, 255, var(--frost-opacity)) 2px,
+                    transparent 2px,
+                    transparent 12px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    rgba(255, 255, 255, calc(var(--frost-opacity) * 0.7)) 0px,
+                    rgba(255, 255, 255, calc(var(--frost-opacity) * 0.7)) 1px,
+                    transparent 1px,
+                    transparent 10px
+                ),
+                repeating-radial-gradient(
+                    circle at 30% 30%,
+                    rgba(255, 255, 255, calc(var(--frost-opacity) * 0.5)) 0px,
+                    transparent 1px,
+                    transparent 6px
+                );
+            background-blend-mode: overlay;
+            transition: all 0.6s ease;
+        }
+
+        .frost-top {
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--frost-top);
+            background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent),
+                        repeating-linear-gradient(45deg, rgba(255,255,255,0.2) 0px, transparent 2px, transparent 12px);
+        }
+
+        .frost-bottom {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--frost-bottom);
+            background: linear-gradient(to top, rgba(255,255,255,0.1), transparent),
+                        repeating-linear-gradient(-45deg, rgba(255,255,255,0.2) 0px, transparent 2px, transparent 12px);
+        }
+
+        .frost-left {
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: var(--frost-left);
+            background: linear-gradient(to right, rgba(255,255,255,0.1), transparent),
+                        repeating-linear-gradient(135deg, rgba(255,255,255,0.2) 0px, transparent 2px, transparent 12px);
+        }
+
+        .frost-right {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: var(--frost-right);
+            background: linear-gradient(to left, rgba(255,255,255,0.1), transparent),
+                        repeating-linear-gradient(45deg, rgba(255,255,255,0.2) 0px, transparent 2px, transparent 12px);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        section {
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 0;
+            
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .glass-card {
+            background: rgba(15, 25, 35, 0.5);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border-radius: 2.5rem;
+            padding: 3.5rem 3rem;
+            box-shadow: 0 30px 50px -20px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03) inset;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            line-height: 1.2;
+            background: linear-gradient(135deg, #ffffff, #b0d0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .hashtags {
+            font-size: 1.1rem;
+            color: #9bb8ff;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+            font-weight: 300;
+        }
+
+        .meta-line {
+            font-size: 1.2rem;
+            color: #b0caf0;
+            font-style: italic;
+            border-left: 3px solid #3f5680;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        p {
+            font-size: 1.2rem;
+            font-weight: 300;
+            color: rgba(220, 235, 255, 0.9);
+            max-width: 750px;
+            margin: 1.2rem 0;
+        }
+
+        .quote-speech {
+            font-style: italic;
+            color: #d5e5ff;
+            font-weight: 400;
+            border-left: 3px solid #5f7fbf;
+            padding-left: 1.8rem;
+            margin: 1.8rem 0;
+        }
+
+        /* Анимация появления */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px) scale(0.98);
+            transition: opacity 0.9s cubic-bezier(0.2, 0.9, 0.1, 1), 
+                        transform 0.9s cubic-bezier(0.2, 0.9, 0.1, 1);
+            will-change: opacity, transform;
+        }
+
+        .reveal-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .delay-1 { transition-delay: 0.1s; }
+        .delay-2 { transition-delay: 0.25s; }
+        .delay-3 { transition-delay: 0.4s; }
+        .delay-4 { transition-delay: 0.55s; }
+        .delay-5 { transition-delay: 0.7s; }
+
+        /* Ледяные сферы (декоративные) */
+        .ice-dot {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(25, 60, 120, 0.15), transparent 70%);
+            filter: blur(70px);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .dot-1 { top: 10vh; left: -5vw; }
+        .dot-2 { bottom: 15vh; right: -5vw; background: radial-gradient(circle at 30% 30%, rgba(15, 30, 90, 0.2), transparent 70%); }
+        .dot-3 { top: 40vh; left: 20vw; background: radial-gradient(circle at 30% 30%, rgba(8, 20, 60, 0.25), transparent 70%); }
+
+        /* Кнопка перехода */
+        .next-btn {
+            display: inline-block;
+            margin-top: 2.5rem;
+            padding: 0.9rem 2.2rem;
+            background: rgba(200, 220, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 3rem;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: background 0.3s, border-color 0.3s, transform 0.2s;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            border-color: rgba(160, 200, 255, 0.5);
+            color: #e0f0ff;
+            text-decoration: none;
+            border: none;
+            background: linear-gradient(135deg, rgba(60, 100, 200, 0.6), rgba(40, 60, 150, 0.7));
+        }
+
+        .next-btn:hover {
+            background: linear-gradient(135deg, rgba(80, 130, 240, 0.8), rgba(50, 80, 200, 0.9));
+            transform: scale(1.02);
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 25px rgba(0, 30, 100, 0.5);
+        }
+
+        .next-btn.hidden {
+            display: none;
+        }
+
+        /* Адаптив */
+        @media (max-width: 700px) {
+            .glass-card {
+                padding: 2.5rem 1.5rem;
+            }
+            p {
+                font-size: 1rem;
+            }
+            .next-btn {
+                padding: 0.7rem 1.5rem;
+                font-size: 1rem;
+            }
+        }
+
+        /* Кастомный скролл */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0e121f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2f405c;
+            border-radius: 20px;
+            border: 2px solid #1a2538;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4f6a94;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    
+    <!-- Элементы инея с четырёх сторон -->
+    <div class="frost-container">
+        <div class="frost frost-top"></div>
+        <div class="frost frost-bottom"></div>
+        <div class="frost frost-left"></div>
+        <div class="frost frost-right"></div>
+    </div>
+
+    <div class="ice-dot dot-1"></div>
+    <div class="ice-dot dot-2"></div>
+    <div class="ice-dot dot-3"></div>
+
+    <!-- Секции с текстом -->
+    <section id="section1">
+        <div class="container">
+            <div class="glass-card" style="text-align: left;">
+                <div class="hashtags reveal">#Рейзор #Ивент</div>
+                <h1 class="reveal delay-1">19 век</h1>
+                <div class="meta-line reveal delay-2">[СТРАНА НИВИС | ЛЕДЯНАЯ ПУСТЫНЯ]</div>
+                <div class="meta-line reveal delay-3" style="border-left-color: #4e6b99;">[Раннее утро. Солнце не встаёт, только красит горизонт в холодный синий.]<br>[В пути. Голоса стихли, но это ненадолго]</div>
+                <p class="reveal delay-4" style="font-size: 1.8rem; font-weight: 400; margin-top: 2rem;">Здесь не бывает тишины.</p>
+                <button class="next-btn hidden" data-next="section2">Он шагнул в безмолвие →</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="section2">
+        <div class="container">
+            <div class="glass-card">
+                <p class="reveal">В этом Рейзор убедился, как только скрип шестерёнок его механической ноши перестал отражаться от невидимых стен Временного Разлома. Он ожидал услышать вой пурги или треск льда. Но нет. Вместо этого на него обрушилось нечто иное — вакуум.</p>
+                <p class="reveal delay-1">Безмолвие ледяной пустыни оказалось громче ста голосов проклятых кукол. Гул в ушах, к которому он привык настолько, что считал его частью своего дыхания, здесь словно сжался в комок, затаился, уступая место давящей пустоте.</p>
+                <p class="reveal delay-2">Экзоскелет громко заскрипел, когда Рейзор сделал первый шаг по снегу, проваливаясь почти по пояс. Мороз тут же вцепился в металлические сочленения, норовя сковать механику. Холодно. Очень холодно.</p>
+                <button class="next-btn hidden" data-next="section3">Тело подводит, но разум держится →</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="section3">
+        <div class="container">
+            <div class="glass-card">
+                <p class="reveal">Маленькая фигура в огромном каркасе из пружин и шестеренок стояла посреди бескрайней белой равнины, занесённая снегом по колено. Гарпун безвольно волочился за спиной, оставляя замысловатую борозду. Растрёпанные, вечно торчащие в разные стороны пепельные волосы сейчас покрылись коркой инея, а мешки под глазами, казалось, стали ещё темнее на фоне мертвенной бледности кожи.</p>
+                <div class="quote-speech reveal delay-1">— Холодно, — прошептал он, и пар тут же превратился в крошево льда.</div>
+                <p class="reveal delay-2">Голоса молчали. Сотни кукол, что молили о смерти там, в лесах, здесь притихли, словно тоже замёрзли. Но это не приносило облегчения. Без их назойливого жужжания стало пусто.</p>
+                <button class="next-btn hidden" data-next="section4">Голоса молчат — это пугает →</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="section4">
+        <div class="container">
+            <div class="glass-card">
+                <p class="reveal">Рейзор прикрыл глаза всего на мгновение, а ресницы уже чуть не слиплись. Экзоскелет заскрипел, ноги подкосились, и он плашмя рухнул в сугроб, подняв тучу снежной пыли.</p>
+                <p class="reveal delay-1">Так было даже удобнее. Снег мягкий.</p>
+                <div class="quote-speech reveal delay-2">— Мягкий... как котик... — пробормотал он куда-то в белое марево.</div>
+                <p class="reveal delay-3">«Механический Полубог» лежал в снегу, раскинув руки, и смотрел, как над ним закручивается лёгкая позёмка. Веки тяжелели. Где-то в глубине засыпающего сознания уже начала разрастаться тёплая, обманчивая мысль: «А может, не вставать? Может, так и остаться? Здесь тихо... голоса молчат...»</p>
+                <button class="next-btn hidden" data-next="section5">Мысль о котике согревает →</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="section5">
+        <div class="container">
+            <div class="glass-card">
+                <p class="reveal">Но что-то щёлкнуло.</p>
+                <p class="reveal delay-1">Не в голове — в экзоскелете. Одна из пружин в грудной секции, сжимаясь от холода, издала резкий, скрежещущий звук. Механизм, словно живое сердце, дёрнулся, протестуя против бездействия. И этот звук отразился от ледяного панциря где-то вдали, родив короткое, злое эхо.</p>
+                <p class="reveal delay-2" style="font-weight: 400; color: #b4d0ff;">Нельзя.<br>Не здесь.</p>
+                <button class="next-btn hidden" data-next="section6">Щелчок механизма вернул к жизни →</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="section6">
+        <div class="container">
+            <div class="glass-card">
+                <p class="reveal">Если он заснёт сейчас — механизм встанет навечно. А вместе с ним встанет и он сам. Где-то там, за этой белой пеленой, может быть, есть лес. Пусть замёрзший, пусть чужой, но лес. А в лесу — жизнь. И может быть, даже кошки.</p>
+                <div class="quote-speech reveal delay-1">— Не время... спать... — выдохнул он, сжимая пальцы в перчатках экзоскелета.</div>
+                <button class="next-btn hidden" data-next="section7">встать →</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="section7">
+        <div class="container">
+            <div class="glass-card">
+                <p class="reveal">Сначала он попытался приподняться на локтях — снег послушно принял вес, но ноги увязли глубоко. Гарпун за спиной перевесил, и Рейзор снова ткнулся лицом в сугроб. Голоса в голове встрепенулись, захихикали где-то на грани восприятия: «Ляг... Не противься... какой смысл...»</p>
+                <div class="quote-speech reveal delay-1">— Заткнитесь, — прошипел он в снег.</div>
+                <p class="reveal delay-2">Упрямство — единственное, что оставалось, когда разум уже наполовину спал. Рейзор подтянул колени, упираясь механическими ступнями в ледяную корку. Пружины в ногах жалобно скрипнули, но начали сжиматься, накапливая энергию. Мышцы собственного тела, давно уже ставшие лишь довеском к машине, горели огнём.</p>
+                <button class="next-btn hidden" data-next="section8">ВСТАТЬ →</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="section8">
+        <div class="container">
+            <div class="glass-card">
+                <p class="reveal">Рывок.</p>
+                <p class="reveal delay-1">Снег взметнулся фонтаном, когда экзоскелет, наконец, подчинился воле хозяина. Рейзор встал. Нетвёрдо, пошатываясь, широко расставив ноги, чтобы не упасть снова. Грузно дыша, он стоял посреди белого безмолвия, и пар вырывался из груди рваными клубами.</p>
+                <p class="reveal delay-2">Перед глазами плыло. Хотелось спать так, что веки склеивались сами собой, несмотря на мороз.</p>
+                <button class="next-btn hidden" data-next="section9">ИДТИ →</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="section9">
+        <div class="container">
+            <div class="glass-card">
+                <p class="reveal">Но он сделал шаг.</p>
+                <p class="reveal delay-1">Потом ещё один.</p>
+                <p class="reveal delay-2">Гарпун вонзился в лёд впереди, механическая лебёдка натянулась, помогая тащить тяжёлое тело вперёд быстрее, чем позволяли замерзающие ноги. Ритмичный скрип шестерёнок снова заполнил тишину, и этот звук был лучше любого лекарства. Он означал, что жизнь продолжается.</p>
+                <p class="reveal delay-3">Маленький человек в огромной машине, с инеем на ресницах и вечной дрёмой в глазах, медленно, но верно двигался навстречу ледяному горизонту. Голоса за спиной нарастали, требуя остановиться, но Рейзор лишь сильнее сжимал рукоять гарпуна.</p>
+                <button class="next-btn hidden" data-next="section10">НАДЕЯТЬСЯ →</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="section10">
+        <div class="container">
+            <div class="glass-card" style="text-align: center;">
+                <p class="reveal lead" style="font-size: 1.8rem;">Он не знал, что найдёт там, впереди. Может быть, гибель. А может быть — просто место, где можно развести костёр, починить пружины и наконец-то поспать.</p>
+                <p class="reveal delay-2" style="font-size: 2.5rem; margin-top: 2rem;">Но сначала — идти.</p>
+                <div class="reveal delay-3" style="margin-top: 3rem; opacity:0.6;">❄️</div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        (function() {
+            const body = document.body;
+            const sections = document.querySelectorAll('section');
+            const footer = document.getElementById('footer');
+            
+            let isScrollingProgrammatically = false;
+
+            // Массив цветов градиента
+            const gradientSets = [
+                { grad1: 'rgba(20, 40, 90, 0.4)', grad2: 'rgba(10, 15, 50, 0.6)', grad3: 'rgba(5, 10, 35, 0.7)' },
+                { grad1: 'rgba(30, 45, 100, 0.45)', grad2: 'rgba(15, 22, 60, 0.65)', grad3: 'rgba(8, 14, 42, 0.75)' },
+                { grad1: 'rgba(18, 50, 110, 0.4)', grad2: 'rgba(12, 25, 65, 0.6)', grad3: 'rgba(6, 15, 45, 0.7)' },
+                { grad1: 'rgba(25, 35, 85, 0.5)', grad2: 'rgba(14, 18, 55, 0.7)', grad3: 'rgba(7, 11, 38, 0.8)' },
+                { grad1: 'rgba(22, 48, 105, 0.42)', grad2: 'rgba(13, 28, 62, 0.63)', grad3: 'rgba(9, 17, 44, 0.72)' },
+                { grad1: 'rgba(28, 52, 115, 0.4)', grad2: 'rgba(16, 30, 68, 0.6)', grad3: 'rgba(10, 19, 48, 0.7)' },
+                { grad1: 'rgba(15, 44, 95, 0.47)', grad2: 'rgba(11, 20, 57, 0.67)', grad3: 'rgba(5, 13, 40, 0.77)' },
+                { grad1: 'rgba(32, 38, 80, 0.5)', grad2: 'rgba(18, 16, 52, 0.7)', grad3: 'rgba(12, 9, 36, 0.8)' },
+                { grad1: 'rgba(24, 55, 120, 0.38)', grad2: 'rgba(14, 32, 70, 0.58)', grad3: 'rgba(8, 20, 50, 0.68)' },
+                { grad1: 'rgba(20, 60, 130, 0.4)', grad2: 'rgba(10, 35, 75, 0.6)', grad3: 'rgba(5, 22, 55, 0.7)' }
+            ];
+
+            // Параметры инея для каждой секции (размеры от краёв в vh/vw)
+            const frostSettings = [
+                { top: 3, bottom: 3, left: 3, right: 3, opacity: 0.15 },    // секция 1
+                { top: 6, bottom: 6, left: 6, right: 6, opacity: 0.2 },
+                { top: 9, bottom: 9, left: 9, right: 9, opacity: 0.25 },
+                { top: 12, bottom: 12, left: 12, right: 12, opacity: 0.3 },
+                { top: 15, bottom: 15, left: 15, right: 15, opacity: 0.35 },
+                { top: 18, bottom: 18, left: 18, right: 18, opacity: 0.4 },
+                { top: 22, bottom: 22, left: 22, right: 22, opacity: 0.45 },
+                { top: 26, bottom: 26, left: 26, right: 26, opacity: 0.5 },
+                { top: 32, bottom: 32, left: 32, right: 32, opacity: 0.55 },
+                { top: 40, bottom: 40, left: 40, right: 40, opacity: 0.65 } // секция 10
+            ];
+
+            function setGradientAndFrostForSection(section) {
+                const index = Array.from(sections).indexOf(section);
+                if (index === -1 || index >= gradientSets.length) return;
+                
+                const colors = gradientSets[index];
+                body.style.setProperty('--grad1', colors.grad1);
+                body.style.setProperty('--grad2', colors.grad2);
+                body.style.setProperty('--grad3', colors.grad3);
+                
+                const frost = frostSettings[index];
+                body.style.setProperty('--frost-top', frost.top + 'vh');
+                body.style.setProperty('--frost-bottom', frost.bottom + 'vh');
+                body.style.setProperty('--frost-left', frost.left + 'vw');
+                body.style.setProperty('--frost-right', frost.right + 'vw');
+                body.style.setProperty('--frost-opacity', frost.opacity);
+            }
+
+            // --- 1. Intersection Observer для появления текста (reveal) ---
+            const revealElements = document.querySelectorAll('.reveal');
+            const textObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const el = entry.target;
+                        el.classList.add('reveal-visible');
+                        
+                        const section = el.closest('section') || el.closest('footer');
+                        if (section) {
+                            checkSectionComplete(section);
+                        }
+                    }
+                });
+            }, { threshold: 0.2, rootMargin: "0px 0px -30px 0px" });
+            revealElements.forEach(el => textObserver.observe(el));
+
+            function checkSectionComplete(section) {
+                const reveals = section.querySelectorAll('.reveal');
+                const allVisible = Array.from(reveals).every(el => el.classList.contains('reveal-visible'));
+                if (allVisible) {
+                    showButton(section);
+                }
+            }
+
+            function showButton(section) {
+                const btn = section.querySelector('.next-btn');
+                if (btn && btn.classList.contains('hidden')) {
+                    btn.classList.remove('hidden');
+                }
+            }
+
+            function initializeButtons() {
+                sections.forEach(section => checkSectionComplete(section));
+                if (footer) checkSectionComplete(footer);
+            }
+
+            // --- 2. Observer для блокировки скролла и смены фона/инея при активации секции ---
+            const sectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+                        setGradientAndFrostForSection(entry.target);
+                        
+                        if (!isScrollingProgrammatically) {
+                            body.classList.add('scroll-locked');
+                        }
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            sections.forEach(sec => sectionObserver.observe(sec));
+            if (footer) sectionObserver.observe(footer);
+
+            // --- 3. Обработка кликов по кнопкам ---
+            document.querySelectorAll('.next-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const targetId = this.getAttribute('data-next');
+                    if (!targetId) return;
+                    
+                    const targetElement = document.getElementById(targetId) || (targetId === 'footer' ? footer : null);
+                    if (!targetElement) return;
+                    
+                    isScrollingProgrammatically = true;
+                    body.classList.remove('scroll-locked');
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    setTimeout(() => {
+                        isScrollingProgrammatically = false;
+                    }, 1200);
+                });
+            });
+
+            // --- 4. Принудительный сброс флага ---
+            let scrollEndTimer;
+            window.addEventListener('scroll', () => {
+                if (isScrollingProgrammatically) {
+                    clearTimeout(scrollEndTimer);
+                    scrollEndTimer = setTimeout(() => {
+                        isScrollingProgrammatically = false;
+                    }, 200);
+                }
+            });
+
+            // --- 5. Запуск инициализации ---
+            window.addEventListener('load', () => {
+                initializeButtons();
+                
+                let mostVisibleSection = null;
+                let maxRatio = 0;
+                [...sections, footer].forEach(sec => {
+                    if (!sec) return;
+                    const rect = sec.getBoundingClientRect();
+                    const visibleHeight = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+                    const ratio = visibleHeight / rect.height;
+                    if (ratio > maxRatio) {
+                        maxRatio = ratio;
+                        mostVisibleSection = sec;
+                    }
+                });
+                if (mostVisibleSection && maxRatio >= 0.5) {
+                    setGradientAndFrostForSection(mostVisibleSection);
+                    if (!isScrollingProgrammatically) {
+                        body.classList.add('scroll-locked');
+                    }
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
